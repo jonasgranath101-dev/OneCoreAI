@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+/*
+
+    One core initiary.
+
+*/
+
+
 // Global configuration variables
 #define MAX_ITERATIONS 30
 #define DATA_SIZE 10
