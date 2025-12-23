@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Bindings.
+
+#include "handle.h"
+
 
 /*
 
@@ -10,6 +14,7 @@
 
 
 // Global configuration variables
+
 #define MAX_ITERATIONS 30
 #define DATA_SIZE 10
 #define DATA
@@ -69,8 +74,8 @@ void block_config() {
 
 // Learn machine blocks.
 
-void learn() {
-
+void learn(float x, float y) {
+    learn_logic(float x, float y)
 }
 
 // Fetch learned variables.
@@ -86,11 +91,25 @@ void fetch_data() {
 void status() {
 
     // Display program activity.
+
+    printf();
+
 }
 
 void info() {
 
     // Display use.
+
+    printf("
+        
+        
+        
+        
+        
+        
+        
+        ");
+
 }
 
 int main(int argc, char *argv[]) {
