@@ -1,60 +1,108 @@
 /*
 
-    Logic & algorithms. For data training.
+    AI Data Trainer: Linear Regression with Gradient Descent
+
+    Logic & algorithms for data training.
 
 */
 
-// calc_packed.c - Download PackedArray.h/c from https://github.com/gpakosz/PackedArray
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
-#include "PackedArray.h"
+#include <math.h>
+
+// Algorithm functions
+
+// Forward pass: prediction = w * x + b
+float forward(float w, float b, float x) {
+    return w * x + b;
+}
+
+// Mean Squared Error loss
+float mse_loss(float pred, float target) {
+    return (pred - target) * (pred - target);
+}
+
+// Gradient descent update
+void update_parameters(float *w, float *b, float dw, float db, float learning_rate) {
+    *w -= learning_rate * dw;
+    *b -= learning_rate * db;
+}
 
 int learn_logic() {
-    const size_t N = 1000;
-    const uint32_t bits = 10;  // Max value 1023
+    const size_t N = 1000;  // Number of training samples
+    const int epochs = 100;  // Number of training epochs
+    const float learning_rate = 0.01f;
 
-    // PackedArray setup
+    // Initialize parameters
+    float w = 0.0f;  // Weight
+    float b = 0.0f;  // Bias
 
-    PackedArray pa;
-    PackedArray_init(&pa, N, bits);
-    
-    // Fill with sequential values (e.g., vertex indices)
+    // Generate training data: y = 2*x + 1 + noise
+    float *x_data = malloc(N * sizeof(float));
+    float *y_data = malloc(N * sizeof(float));
 
+    srand(time(NULL));
     for (size_t i = 0; i < N; i++) {
-        PackedArray_set(&pa, i, (uint32_t)(i % (1u << bits)));
+        x_data[i] = (float)i / 100.0f;  // Scale to 0-10 range
+        y_data[i] = 2.0f * x_data[i] + 1.0f + ((float)rand() / RAND_MAX - 0.5f) * 2.0f;  // Add noise
     }
-    
-    // Calculate data task for training.
 
-    uint64_t sum_packed = 0;
-    clock_t start = clock();
-    for (size_t i = 0; i < N; i++) {
-        sum_packed += PackedArray_get(&pa, i);
+    // Training loop
+    printf("Starting AI Data Training: Linear Regression\n");
+    printf("Target function: y = 2*x + 1 (with noise)\n\n");
+
+    for (int epoch = 0; epoch < epochs; epoch++) {
+        float total_loss = 0.0f;
+        float dw = 0.0f;
+        float db = 0.0f;
+
+        // Forward pass and accumulate gradients
+        for (size_t i = 0; i < N; i++) {
+            float pred = forward(w, b, x_data[i]);
+            total_loss += mse_loss(pred, y_data[i]);
+
+            // Gradients
+            float error = pred - y_data[i];
+            dw += 2.0f * error * x_data[i];
+            db += 2.0f * error;
+        }
+
+        // Average gradients
+        dw /= N;
+        db /= N;
+        total_loss /= N;
+
+        // Update parameters
+        update_parameters(&w, &b, dw, db, learning_rate);
+
+        // Print progress every 10 epochs
+        if ((epoch + 1) % 10 == 0) {
+            printf("Epoch %d: Loss = %.4f, w = %.4f, b = %.4f\n", epoch + 1, total_loss, w, b);
+        }
     }
-    double time_packed = (double)(clock() - start) / CLOCKS_PER_SEC;
-    
-    PackedArray_destroy(&pa);
 
-    // Training.
+    printf("\nTraining completed!\n");
+    printf("Learned parameters: w = %.4f, b = %.4f\n", w, b);
+    printf("Target was: w = 2.0, b = 1.0\n");
 
-    uint32_t* plain = malloc(N * sizeof(uint32_t));
-    for (size_t i = 0; i < N; i++) plain[i] = (uint32_t)(i % (1u << bits));
-    
-    uint64_t sum_plain = 0;
-    start = clock();
-    for (size_t i = 0; i < N; i++) {
-        sum_plain += plain[i];
+    // Test on new data
+    printf("\nTesting on new samples:\n");
+    for (int i = 0; i < 5; i++) {
+        float test_x = (float)(i * 2) / 100.0f;
+        float pred = forward(w, b, test_x);
+        float true_y = 2.0f * test_x + 1.0f;
+        printf("x = %.2f: Predicted = %.4f, True = %.4f\n", test_x, pred, true_y);
     }
-    double time_plain = (double)(clock() - start) / CLOCKS_PER_SEC;
-    free(plain);
-    
-    printf("PackedArray sum: %llu (time: %.3f ms, memory: %zu bytes)
-", 
-           sum_packed, time_packed * 1000, pa.buffer_size * sizeof(uint32_t));
-    printf("Plain array sum: %llu (time: %.3f ms, memory: %zu bytes)
-", 
-           sum_plain, time_plain * 1000, N * sizeof(uint32_t));
-    
+
+    // Clean up
+    free(x_data);
+    free(y_data);
+
     return 0;
+}
+
+int main() {
+    return learn_logic();
 }

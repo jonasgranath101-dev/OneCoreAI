@@ -35,7 +35,6 @@ void block_data(const BlockData *data, int iteration) {
            iteration, data->id, data->value, data->label);
 }
 
-
 // Block functions for user.
 
 // Clear block from variables.
