@@ -12,6 +12,11 @@
 // Global configuration variables
 #define MAX_ITERATIONS 30
 #define DATA_SIZE 10
+#define DATA
+#define DATA_TOPICS 
+#define BLOCK_LOCATION 
+#define BLOCK_SIZE
+#define BLOCK_PROCESS_RATE
 
 // Data structure for block processing
 typedef struct {
@@ -66,6 +71,12 @@ void block_config() {
 // Learn machine blocks.
 
 void learn() {
+
+}
+
+// Fetch learned variables.
+
+void fetch_data() {
 
 }
 
