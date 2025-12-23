@@ -8,26 +8,22 @@
 #ifndef HANDLE_H
 #define HANDLE_H
 
-// A function prototype
-int learn_logic(float w, float b);
+// Function prototypes
 
+// Learning logic function
+int learn_logic();
+
+// User interface functions
 void learn();
-
 void status();
-
 void info();
-
 void fetch_data();
 
+// Block management functions
 void block_clear();
-
 void block_run();
-
 void block_delete();
-
 void block_status();
-
 void block_config();
-
 
 #endif

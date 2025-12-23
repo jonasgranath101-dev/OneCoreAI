@@ -30,7 +30,7 @@ void update_parameters(float *w, float *b, float dw, float db, float learning_ra
     *b -= learning_rate * db;
 }
 
-int learn_logic(int w, float b) {
+int learn_logic() {
     const size_t N = 1000;  // Number of training samples
     const int epochs = 100;  // Number of training epochs
     const float learning_rate = 0.01f;
