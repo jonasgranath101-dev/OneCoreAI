@@ -11,11 +11,11 @@ Structured.
 
 In c.
 
-        [ SCREEEN SHOTS]
+#        [ SCREEEN SHOTS]
 
 
 
 
         
 
-        [ CORE BLOCK SIMPLE SPECIFICATIONS ]
+#        [ CORE BLOCK SIMPLE SPECIFICATIONS ]
