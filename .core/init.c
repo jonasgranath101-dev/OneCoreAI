@@ -22,24 +22,57 @@ void block_data(const BlockData *data, int iteration) {
            iteration, data->id, data->value, data->label);
 }
 
-void block_clear
 
-void block_run
+// Block functions for user.
 
-void block_delete
+// Clear block from variables.
 
-void block_status
+void block_clear() {
 
-void block_config
+}
 
-void learn
+// Run a block.
+
+void block_run() {
+
+}
+
+// Delete a block.
+
+void block_delete() {
+
+}
+
+// Display output of block activity.
+
+void block_status() {
+
+}
+
+// Change block variables.
+
+void block_config() {
+
+}
+
+// Learn machine blocks.
+
+void learn() {
+
+}
+
+
+// Program diagnostic functions.
+
 
 void status() {
-    
+
+    // Display program activity.
 }
 
 void info(){
 
+    // Display use.
 }
 
 int main(int argc, char *argv[]) {
