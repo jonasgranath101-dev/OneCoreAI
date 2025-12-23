@@ -1,7 +1,7 @@
 # OneCoreAI
 Logic for simple AI. Less density.
 
-Block design.
+Block based.
 Effective as multiple.
 
 Structured.
