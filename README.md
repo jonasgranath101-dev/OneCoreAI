@@ -1,6 +1,6 @@
 # OneCoreAI
 
-![Logo Description](path/to/logo.png)
+![Logo Description](/logo.png)
 
 Logic for simple AI. Less density.
 
