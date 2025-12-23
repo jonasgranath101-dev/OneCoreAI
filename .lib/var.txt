@@ -1,1 +1,1 @@
-Variable data topics. Formats.
+Variable data types. Formats.

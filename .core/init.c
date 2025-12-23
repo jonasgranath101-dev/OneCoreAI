@@ -13,7 +13,7 @@
 #define MAX_ITERATIONS 30
 #define DATA_SIZE 10
 #define DATA
-#define DATA_TOPICS 
+#define DATA_TYPES 
 #define BLOCK_LOCATION 
 #define BLOCK_SIZE
 #define BLOCK_PROCESS_RATE
