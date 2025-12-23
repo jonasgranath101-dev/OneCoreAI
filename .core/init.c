@@ -81,7 +81,9 @@ void learn(float x, float y) {
 // Fetch learned variables.
 
 void fetch_data() {
-
+    int data_1
+    char data_2
+    float data_3
 }
 
 
