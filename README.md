@@ -9,4 +9,13 @@ Effective as multiple.
 
 Structured.
 
+In c.
+
+        [ SCREEEN SHOTS]
+
+
+
+
+        
+
 [ CORE BLOCK SIMPLE SPECIFICATIONS ]
