@@ -89,7 +89,7 @@ void status() {
     // Display program activity.
 }
 
-void info(){
+void info() {
 
     // Display use.
 }

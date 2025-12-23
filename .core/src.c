@@ -10,20 +10,23 @@
 #include <time.h>
 #include "PackedArray.h"
 
-int main() {
+int learn_logic() {
     const size_t N = 1000;
     const uint32_t bits = 10;  // Max value 1023
 
     // PackedArray setup
+
     PackedArray pa;
     PackedArray_init(&pa, N, bits);
     
     // Fill with sequential values (e.g., vertex indices)
+
     for (size_t i = 0; i < N; i++) {
         PackedArray_set(&pa, i, (uint32_t)(i % (1u << bits)));
     }
     
-    // Calculate sum
+    // Calculate data task for training.
+
     uint64_t sum_packed = 0;
     clock_t start = clock();
     for (size_t i = 0; i < N; i++) {
@@ -32,8 +35,9 @@ int main() {
     double time_packed = (double)(clock() - start) / CLOCKS_PER_SEC;
     
     PackedArray_destroy(&pa);
-    
-    // Plain array comparison
+
+    // Training.
+
     uint32_t* plain = malloc(N * sizeof(uint32_t));
     for (size_t i = 0; i < N; i++) plain[i] = (uint32_t)(i % (1u << bits));
     
