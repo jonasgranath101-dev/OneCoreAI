@@ -17,6 +17,7 @@ OneCoreAI is a block-based AI system written in C that allows creating multiple 
 - **Extractable Variables**: Save and load learned parameters, hyperparameters, and training history
 - **Block-Based Architecture**: Clean separation of AI components for easy extension
 - **Linear Regression**: Built-in linear regression with gradient descent training
+#        [ SCREEEN SHOTS]
 
 ## Architecture
 
@@ -66,3 +67,4 @@ The modular block design allows easy addition of:
 - Cross-validation
 - Model persistence
 - Ensemble methods
+#        [ ~ CORE BLOCK SIMPLE SPECIFICATIONS ~ ]
