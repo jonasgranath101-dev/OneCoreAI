@@ -7,8 +7,12 @@ OneCoreAI is a block-based AI system written in C that allows creating multiple 
 ## Screenshots
 
 ![screenshot 1](/.screenshots/Screenshot%202025-12-24%207.50.40%20AM.png)
+
 ![screenshot 2](/.screenshots/Screenshot%202025-12-24%207.51.46%20AM.png)
+
 ![screenshot 3](/.screenshots/Screenshot%202025-12-24%207.52.16%20AM.png)
+
+![screenshot 4](/.screenshots/Screenshot%202025-12-24%208.39.00%20AM.png)
 
 ## Features
 

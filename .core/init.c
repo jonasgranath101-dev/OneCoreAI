@@ -58,6 +58,65 @@ void ai_block_update(float *w, float *b, float dw, float db, float learning_rate
     *b -= learning_rate * db;
 }
 
+// Function to visualize a core's variables as containers
+void visualize_core(AICore *core, float current_loss) {
+    printf("╔══════════════════════════════════════════════════════════╗\n");
+    printf("║                     Core %d: %s                      ║\n", core->id, core->name);
+    printf("╠══════════════════════════════════════════════════════════╣\n");
+
+    // Weight visualization
+    int weight_bars = (int)(core->weight * 5); // Scale for visualization
+    if (weight_bars < 0) weight_bars = 0;
+    if (weight_bars > 20) weight_bars = 20;
+    printf("║ Weight:  [");
+    for (int i = 0; i < 20; i++) {
+        printf(i < weight_bars ? "█" : "░");
+    }
+    printf("] %.4f ║\n", core->weight);
+
+    // Bias visualization
+    int bias_bars = (int)(core->bias * 20); // Scale bias (0-1+)
+    if (bias_bars < 0) bias_bars = 0;
+    if (bias_bars > 20) bias_bars = 20;
+    printf("║ Bias:    [");
+    for (int i = 0; i < 20; i++) {
+        printf(i < bias_bars ? "█" : "░");
+    }
+    printf("] %.4f ║\n", core->bias);
+
+    // Learning rate visualization
+    int lr_bars = (int)(core->learning_rate * 2000); // Scale lr (0.005-0.02)
+    if (lr_bars < 0) lr_bars = 0;
+    if (lr_bars > 20) lr_bars = 20;
+    printf("║ LR:      [");
+    for (int i = 0; i < 20; i++) {
+        printf(i < lr_bars ? "█" : "░");
+    }
+    printf("] %.4f ║\n", core->learning_rate);
+
+    // Loss visualization (inverse, lower loss = more filled)
+    float loss_scale = current_loss > 1.0f ? 1.0f : current_loss;
+    int loss_bars = (int)((1.0f - loss_scale) * 20); // Higher bars = lower loss
+    if (loss_bars < 0) loss_bars = 0;
+    if (loss_bars > 20) loss_bars = 20;
+    printf("║ Loss:    [");
+    for (int i = 0; i < 20; i++) {
+        printf(i < loss_bars ? "█" : "░");
+    }
+    printf("] %.4f ║\n", current_loss);
+
+    // Epoch progress
+    int epoch_progress = (int)((float)core->epochs / 200 * 20); // Assuming max 200 epochs
+    if (epoch_progress > 20) epoch_progress = 20;
+    printf("║ Epochs:  [");
+    for (int i = 0; i < 20; i++) {
+        printf(i < epoch_progress ? "█" : "░");
+    }
+    printf("] %d/%d ║\n", core->epochs, 200);
+
+    printf("╚══════════════════════════════════════════════════════════╝\n");
+}
+
 // Training block - combines all AI blocks for one core
 int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
     printf("Training Core %d (%s)...\n", core->id, core->name);
@@ -93,6 +152,13 @@ int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
         if (epoch < 100) {
             core->loss_history[epoch] = total_loss;
             core->loss_count++;
+        }
+
+        // Visualize the core every 5 epochs
+        if ((epoch + 1) % 5 == 0 || epoch == 0) {
+            printf("\033[2J\033[H"); // Clear screen
+            visualize_core(core, total_loss);
+            printf("Epoch: %d/%d\n", epoch + 1, core->epochs);
         }
 
         // Print progress
