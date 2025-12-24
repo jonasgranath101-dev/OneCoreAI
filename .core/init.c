@@ -355,39 +355,91 @@ void info() {
 }
 
 int main(int argc, char *argv[]) {
-    printf("Welcome to OneCoreAI - Multiple AI Core Blocks System\n\n");
+    printf("Welcome to OneCoreAI - Multiple AI Core Blocks System\n");
+    printf("Type 'help' for available commands.\n\n");
 
-    // Example usage: Create multiple cores
-    int core1 = core_create("LinearRegression1", 0.01f, 100);
-    int core2 = core_create("LinearRegression2", 0.02f, 50);
-    int core3 = core_create("LinearRegression3", 0.005f, 200);
+    char command[256];
+    char arg1[64], arg2[64], arg3[64], arg4[64];
 
-    if (core1 >= 0 && core2 >= 0 && core3 >= 0) {
-        printf("\nCreated 3 AI cores. Running training...\n\n");
+    while (1) {
+        printf("OneCoreAI> ");
+        fflush(stdout);
 
-        // Run training on all cores
-        block_run();
-
-        printf("\nTesting predictions...\n");
-        for (int i = 0; i < 3; i++) {
-            AICore *core = &cores[i];
-            float test_x = 5.0f;
-            float pred = ai_block_predict(core, test_x);
-            float true_y = 2.0f * test_x + 1.0f;
-            printf("Core %d: x=%.1f, Predicted=%.4f, True=%.4f\n",
-                   core->id, test_x, pred, true_y);
+        if (fgets(command, sizeof(command), stdin) == NULL) {
+            break;
         }
 
-        // Extract variables from cores
-        printf("\nExtracting variables from cores...\n");
-        for (int i = 0; i < 3; i++) {
-            float w, b, lr;
-            int epochs;
-            ai_block_extract_variables(&cores[i], &w, &b, &lr, &epochs);
-            printf("Core %d: w=%.4f, b=%.4f\n", cores[i].id, w, b);
+        // Remove newline character
+        command[strcspn(command, "\n")] = 0;
+
+        // Parse command and arguments
+        int args_count = sscanf(command, "%s %s %s %s", arg1, arg2, arg3, arg4);
+
+        if (strcmp(arg1, "exit") == 0 || strcmp(arg1, "quit") == 0) {
+            break;
+        } else if (strcmp(arg1, "help") == 0) {
+            printf("\nAvailable Commands:\n");
+            printf("  create <name> <lr> <epochs>  - Create a new AI core\n");
+            printf("  run                          - Train all cores (shows visualization)\n");
+            printf("  status                       - Show status of all cores\n");
+            printf("  predict <core_id> <x>        - Make prediction with specific core\n");
+            printf("  delete <core_id>             - Delete a specific core\n");
+            printf("  clear                        - Clear all cores\n");
+            printf("  config <core_id> <lr> <epochs> - Configure a core\n");
+            printf("  learn <x> <y>                - Train first core on single sample\n");
+            printf("  fetch                        - Extract variables from first core\n");
+            printf("  info                         - Show system information\n");
+            printf("  help                         - Show this help message\n");
+            printf("  exit                         - Exit the program\n\n");
+        } else if (strcmp(arg1, "create") == 0 && args_count >= 4) {
+            float lr = atof(arg3);
+            int epochs = atoi(arg4);
+            core_create(arg2, lr, epochs);
+        } else if (strcmp(arg1, "run") == 0) {
+            block_run();
+        } else if (strcmp(arg1, "status") == 0) {
+            block_status();
+        } else if (strcmp(arg1, "predict") == 0 && args_count >= 3) {
+            int core_id = atoi(arg2);
+            float x = atof(arg3);
+            AICore *core = core_get(core_id);
+            if (core) {
+                float pred = ai_block_predict(core, x);
+                printf("Core %d prediction for x=%.2f: %.4f\n", core_id, x, pred);
+            } else {
+                printf("Invalid core ID: %d\n", core_id);
+            }
+        } else if (strcmp(arg1, "delete") == 0 && args_count >= 2) {
+            int core_id = atoi(arg2);
+            core_delete(core_id);
+        } else if (strcmp(arg1, "clear") == 0) {
+            block_clear();
+        } else if (strcmp(arg1, "config") == 0 && args_count >= 4) {
+            int core_id = atoi(arg2);
+            AICore *core = core_get(core_id);
+            if (core) {
+                core->learning_rate = atof(arg3);
+                core->epochs = atoi(arg4);
+                printf("Reconfigured Core %d: lr=%.4f, epochs=%d\n", core_id, core->learning_rate, core->epochs);
+            } else {
+                printf("Invalid core ID: %d\n", core_id);
+            }
+        } else if (strcmp(arg1, "learn") == 0 && args_count >= 3) {
+            float x = atof(arg2);
+            float y = atof(arg3);
+            learn(x, y);
+            printf("Trained on sample (%.2f, %.2f)\n", x, y);
+        } else if (strcmp(arg1, "fetch") == 0) {
+            fetch_data();
+        } else if (strcmp(arg1, "info") == 0) {
+            info();
+        } else if (strlen(arg1) > 0) {
+            printf("Unknown command: %s\n", arg1);
+            printf("Type 'help' for available commands.\n");
         }
+        printf("\n");
     }
 
-    printf("\nOneCoreAI demonstration completed.\n");
+    printf("Goodbye!\n");
     return 0;
 }
