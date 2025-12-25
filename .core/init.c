@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifndef _WIN32
 #include <dlfcn.h>
+#endif
 
 // Bindings.
 
@@ -259,6 +261,7 @@ AICore* core_get(int core_id) {
 // Block disk and hardware location.
 
 void block_location(int core_id) {
+#ifndef _WIN32
     Dl_info info;
 
     // We pass the function name 'my_actual_block' directly.
@@ -268,8 +271,9 @@ void block_location(int core_id) {
         printf("Disk Location (File): %s\n", info.dli_fname);
         printf("RAM Location (Address): %p\n", info.dli_saddr);
     }
-
-    // Removed "return 0;" because a 'void' function cannot return a value.
+#else
+    printf("Block location not supported on Windows.\n");
+#endif
 }
 
 // Clear block from variables.

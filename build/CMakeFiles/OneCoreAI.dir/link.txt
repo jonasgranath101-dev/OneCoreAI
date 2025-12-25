@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/OneCoreAI.dir/link.d CMakeFiles/OneCoreAI.dir/.core/init.c.o -o OneCoreAI
