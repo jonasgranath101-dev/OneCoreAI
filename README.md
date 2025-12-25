@@ -68,10 +68,10 @@ The modular block design allows easy addition of:
 - Advanced optimizers
 - Regularization techniques
 - Cross-validation
+- Model persistence
+- Ensemble methods
 
 ## Future features.
 
   ~ Block location.
   ~ Data size on block.
-- Model persistence
-- Ensemble methods
