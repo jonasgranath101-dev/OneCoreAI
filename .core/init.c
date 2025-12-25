@@ -37,12 +37,6 @@ typedef struct {
 AICore cores[MAX_CORES];
 int active_cores = 0;
 
-// Location global variables
-
-int global_var = 42;  // Data segment
-
-void code_func() {}   // Code segment
-
 // AI Block Functions - Core Logic Components
 
 // Forward pass block: prediction = w * x + b
@@ -260,13 +254,13 @@ AICore* core_get(int core_id) {
 
 // Block disk and hardware location.
 
-void block_location(int core_id) {
+void block_location(int id_arg) {
 #ifndef _WIN32
     Dl_info info;
 
     // We pass the function name 'my_actual_block' directly.
     // In C, a function name acts as a pointer to its memory address.
-    if (dladdr(core_get(core_id), &info)) {
+    if (dladdr(core_get(id_arg), &info)) {
         printf("Function Name: %s\n", info.dli_sname);
         printf("Disk Location (File): %s\n", info.dli_fname);
         printf("RAM Location (Address): %p\n", info.dli_saddr);
