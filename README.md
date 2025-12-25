@@ -4,6 +4,10 @@
 
 OneCoreAI is a block-based AI system written in C that allows creating multiple AI "cores" (blocks), each containing modular AI logic with extractable variables.
 
+
+
+For building in general.
+
 ## Screenshots
 
 ![screenshot 1](/.screenshots/Screenshot%202025-12-24%207.50.40%20AM.png)
@@ -71,6 +75,3 @@ The modular block design allows easy addition of:
 - Model persistence
 - Ensemble methods
 
-## Future features.
-
-  - Data size on block.

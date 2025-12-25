@@ -249,8 +249,23 @@ AICore* core_get(int core_id) {
     return &cores[core_id - 1];
 }
 
+
 // Block functions for user interface (from handle.h)
 
+
+// Block size on disk.
+
+void block_size(int id_core) {
+
+    AICore *core = core_get(id_core);
+
+    // This command finds the size of 'target_function' in the compiled binary
+    // Note: The binary must be compiled with symbols (not stripped)
+    printf("Fetching function size from symbol table...\n");
+    
+    // Replace 'a.out' with your executable name
+    system("nm --print-size --size-sort a.out | grep core");
+}
 
 // Block disk and hardware location.
 
@@ -258,9 +273,11 @@ void block_location(int id_arg) {
 #ifndef _WIN32
     Dl_info info;
 
+    AICore *core = core_get(id_arg);
+
     // We pass the function name 'my_actual_block' directly.
     // In C, a function name acts as a pointer to its memory address.
-    if (dladdr(core_get(id_arg), &info)) {
+    if (dladdr(core, &info)) {
         printf("Function Name: %s\n", info.dli_sname);
         printf("Disk Location (File): %s\n", info.dli_fname);
         printf("RAM Location (Address): %p\n", info.dli_saddr);
@@ -413,7 +430,8 @@ int main(int argc, char *argv[]) {
             printf("  status                       - Show status of all cores\n");
             printf("  predict <core_id> <x>        - Make prediction with specific core\n");
             printf("  delete <core_id>             - Delete a specific core\n");
-            printf("  location <core_id>           - Block location\n");
+            printf("  size <core_id>               - Disk block size.\n");
+            printf("  location <core_id>           - Block disk location\n");
             printf("  clear                        - Clear all cores\n");
             printf("  config <core_id> <lr> <epochs> - Configure a core\n");
             printf("  learn <x> <y>                - Train first core on single sample\n");
@@ -447,6 +465,9 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(arg1, "location") == 0) {
             int core_id = atoi(arg2);
             block_location(core_id);
+        } else if (strcmp(arg1, "size") == 0) {
+            int core_id = atoi(arg2);
+            block_size(core_id);
         } else if (strcmp(arg1, "config") == 0 && args_count >= 4) {
             int core_id = atoi(arg2);
             AICore *core = core_get(core_id);
