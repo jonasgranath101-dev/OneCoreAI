@@ -1,3 +1,0 @@
-/home/jonasgranath101/Github/OneCoreAI/build/CMakeFiles/OneCoreAI.dir
-/home/jonasgranath101/Github/OneCoreAI/build/CMakeFiles/edit_cache.dir
-/home/jonasgranath101/Github/OneCoreAI/build/CMakeFiles/rebuild_cache.dir
