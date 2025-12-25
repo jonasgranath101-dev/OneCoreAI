@@ -73,5 +73,4 @@ The modular block design allows easy addition of:
 
 ## Future features.
 
-  - Block location.
   - Data size on block.
