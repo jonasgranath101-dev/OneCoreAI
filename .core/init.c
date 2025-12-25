@@ -3,9 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#ifndef _WIN32
-#include <dlfcn.h>
-#endif
 
 // Bindings.
 
@@ -264,27 +261,20 @@ void block_size(int id_core) {
     printf("Fetching function size from symbol table...\n");
     
     // Replace 'a.out' with your executable name
-    system("nm --print-size --size-sort a.out | grep core");
+    system("nm --print-size --size-sort onecoreai | grep core");
 }
 
 // Block disk and hardware location.
 
 void block_location(int id_arg) {
-#ifndef _WIN32
-    Dl_info info;
 
     AICore *core = core_get(id_arg);
 
-    // We pass the function name 'my_actual_block' directly.
-    // In C, a function name acts as a pointer to its memory address.
-    if (dladdr(core, &info)) {
-        printf("Function Name: %s\n", info.dli_sname);
-        printf("Disk Location (File): %s\n", info.dli_fname);
-        printf("RAM Location (Address): %p\n", info.dli_saddr);
-    }
-#else
-    printf("Block location not supported on Windows.\n");
-#endif
+    // This is the 'address' stored inside the pointer (Location of Data)
+    printf("Core storage address: %p\n", (void*)core);
+    
+    // This is the location of the pointer itself (Location on Stack)
+    printf("Core own address:  %p\n", (void*)&core);
 }
 
 // Clear block from variables.
