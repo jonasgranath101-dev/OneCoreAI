@@ -38,5 +38,6 @@ void block_run();
 void block_delete();
 void block_status();
 void block_config();
+void block_location(int core_id);
 
 #endif

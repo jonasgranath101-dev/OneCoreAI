@@ -1,7 +1,9 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <dlfcn.h>
 
 // Bindings.
 
@@ -19,6 +21,7 @@
 #define MAX_CORES 10
 #define MAX_ITERATIONS 100
 #define DATA_SIZE 1000
+#define DISK_SIZE 100
 
 // AICore structure defined in handle.h
 
@@ -31,6 +34,12 @@ typedef struct {
 // Global cores array
 AICore cores[MAX_CORES];
 int active_cores = 0;
+
+// Location global variables
+
+int global_var = 42;  // Data segment
+
+void code_func() {}   // Code segment
 
 // AI Block Functions - Core Logic Components
 
@@ -246,6 +255,23 @@ AICore* core_get(int core_id) {
 
 // Block functions for user interface (from handle.h)
 
+
+// Block disk and hardware location.
+
+void block_location(int core_id) {
+    Dl_info info;
+
+    // We pass the function name 'my_actual_block' directly.
+    // In C, a function name acts as a pointer to its memory address.
+    if (dladdr(core_get(core_id), &info)) {
+        printf("Function Name: %s\n", info.dli_sname);
+        printf("Disk Location (File): %s\n", info.dli_fname);
+        printf("RAM Location (Address): %p\n", info.dli_saddr);
+    }
+
+    // Removed "return 0;" because a 'void' function cannot return a value.
+}
+
 // Clear block from variables.
 void block_clear() {
     active_cores = 0;
@@ -306,6 +332,11 @@ void block_status() {
 
 // Change block variables.
 void block_config() {
+
+    // Block disk size configuration.
+
+
+
     // For simplicity, reconfigure the first core
     if (active_cores > 0) {
         AICore *core = &cores[0];
@@ -384,6 +415,7 @@ int main(int argc, char *argv[]) {
             printf("  status                       - Show status of all cores\n");
             printf("  predict <core_id> <x>        - Make prediction with specific core\n");
             printf("  delete <core_id>             - Delete a specific core\n");
+            printf("  location <core_id>           - Block location\n");
             printf("  clear                        - Clear all cores\n");
             printf("  config <core_id> <lr> <epochs> - Configure a core\n");
             printf("  learn <x> <y>                - Train first core on single sample\n");
@@ -414,6 +446,9 @@ int main(int argc, char *argv[]) {
             core_delete(core_id);
         } else if (strcmp(arg1, "clear") == 0) {
             block_clear();
+        } else if (strcmp(arg1, "location") == 0) {
+            int core_id = atoi(arg2);
+            block_location(core_id);
         } else if (strcmp(arg1, "config") == 0 && args_count >= 4) {
             int core_id = atoi(arg2);
             AICore *core = core_get(core_id);
