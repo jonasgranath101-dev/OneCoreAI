@@ -15,6 +15,8 @@ currently being supported with security updates.
 | v1.0.0   | :white_check_mark: |
 | > v1.0.0 | :x:                |
 
+## Beware latest version might be vulnerable.
+
 ## Reporting a Vulnerability
 
 Email me the problem at jonasgranath101@gmail.com.
