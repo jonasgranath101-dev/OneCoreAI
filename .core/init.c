@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -26,6 +27,7 @@
 
 // Data structure for training samples
 typedef struct {
+    unsigned char data_sheet;  // Hexadecimal data sheet for logic control
     float x;
     float y;
 } TrainingData;
@@ -138,6 +140,31 @@ int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
 
             float dw, db;
             ai_block_gradients(pred, data[i].y, data[i].x, &dw, &db);
+
+            // Apply hexadecimal data sheet logic to gradients
+            unsigned char hex = data[i].data_sheet;
+            if (hex & 0x01) dw *= 2.0f;  // Bit 0: Amplify weight gradient
+            if (hex & 0x02) db *= 2.0f;  // Bit 1: Amplify bias gradient
+            if (hex & 0x04) dw = -dw;    // Bit 2: Invert weight gradient
+            if (hex & 0x08) db = -db;    // Bit 3: Invert bias gradient
+            if (hex & 0x10) {            // Bit 4: Scale gradients up
+                dw *= 1.5f;
+                db *= 1.5f;
+            }
+            if (hex & 0x20) {            // Bit 5: Scale gradients down
+                dw *= 0.5f;
+                db *= 0.5f;
+            }
+            if (hex & 0x40) {            // Bit 6: Swap gradients
+                float temp = dw;
+                dw = db;
+                db = temp;
+            }
+            if (hex & 0x80) {            // Bit 7: Zero gradients
+                dw = 0.0f;
+                db = 0.0f;
+            }
+
             avg_dw += dw;
             avg_db += db;
         }
@@ -297,6 +324,7 @@ void block_run() {
     for (size_t i = 0; i < DATA_SIZE; i++) {
         data[i].x = (float)i / 100.0f;  // Scale to 0-10 range
         data[i].y = 2.0f * data[i].x + 1.0f + ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
+        data[i].data_sheet = (unsigned char)(rand() % 256);  // Generate hexadecimal data sheet
     }
 
     // Train all cores
