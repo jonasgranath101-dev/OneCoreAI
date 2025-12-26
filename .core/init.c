@@ -335,6 +335,37 @@ void block_run() {
     free(data);
 }
 
+// Train specific cores
+void train_cores(int num_cores, int *core_ids) {
+    if (num_cores == 0) {
+        printf("No cores to train.\n");
+        return;
+    }
+
+    // Generate training data: y = 2*x + 1 + noise
+    TrainingData *data = malloc(DATA_SIZE * sizeof(TrainingData));
+    srand(time(NULL));
+
+    for (size_t i = 0; i < DATA_SIZE; i++) {
+        data[i].x = (float)i / 100.0f;  // Scale to 0-10 range
+        data[i].y = 2.0f * data[i].x + 1.0f + ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
+        data[i].data_sheet = (unsigned char)(rand() % 256);  // Generate hexadecimal data sheet
+    }
+
+    // Train specified cores
+    for (int i = 0; i < num_cores; i++) {
+        int core_id = core_ids[i];
+        AICore *core = core_get(core_id);
+        if (core) {
+            ai_block_train(core, data, DATA_SIZE);
+        } else {
+            printf("Invalid core ID: %d\n", core_id);
+        }
+    }
+
+    free(data);
+}
+
 // Delete a block.
 void block_delete() {
     // For simplicity, delete the last core
@@ -379,30 +410,31 @@ void block_config() {
     }
 }
 
-// Learn machine blocks.
-void learn(float x, float y) {
-    // This would train on a single sample - simplified
-    if (active_cores > 0) {
-        AICore *core = &cores[0];
+// Learn machine blocks for specific core.
+void learn(int core_id, float x, float y) {
+    AICore *core = core_get(core_id);
+    if (core) {
         float pred = ai_block_forward(core->weight, core->bias, x);
         float dw, db;
         ai_block_gradients(pred, y, x, &dw, &db);
         ai_block_update(&core->weight, &core->bias, dw, db, core->learning_rate);
+        printf("Trained Core %d on sample (%.2f, %.2f)\n", core_id, x, y);
+    } else {
+        printf("Invalid core ID: %d\n", core_id);
     }
 }
 
-// Fetch learned variables.
-void fetch_data() {
-    if (active_cores == 0) {
-        printf("No cores available.\n");
-        return;
+// Fetch learned variables from specific core.
+void fetch_data(int core_id) {
+    AICore *core = core_get(core_id);
+    if (core) {
+        float w, b, lr;
+        int epochs;
+        ai_block_extract_variables(core, &w, &b, &lr, &epochs);
+        printf("Core %d Variables: w=%.4f, b=%.4f, lr=%.4f, epochs=%d\n", core_id, w, b, lr, epochs);
+    } else {
+        printf("Invalid core ID: %d\n", core_id);
     }
-
-    // Extract variables from first core
-    float w, b, lr;
-    int epochs;
-    ai_block_extract_variables(&cores[0], &w, &b, &lr, &epochs);
-    printf("Core 1 Variables: w=%.4f, b=%.4f, lr=%.4f, epochs=%d\n", w, b, lr, epochs);
 }
 
 // Program diagnostic functions.
@@ -452,8 +484,9 @@ int main(int argc, char *argv[]) {
             printf("  location <core_id>           - Block disk location\n");
             printf("  clear                        - Clear all cores\n");
             printf("  config <core_id> <lr> <epochs> - Configure a core\n");
-            printf("  learn <x> <y>                - Train first core on single sample\n");
-            printf("  fetch                        - Extract variables from first core\n");
+            printf("  train <core_id> [core_id2] ... - Train specific cores\n");
+            printf("  learn <core_id> <x> <y>      - Train specific core on single sample\n");
+            printf("  fetch <core_id>              - Extract variables from specific core\n");
             printf("  info                         - Show system information\n");
             printf("  help                         - Show this help message\n");
             printf("  exit                         - Exit the program\n\n");
@@ -465,9 +498,10 @@ int main(int argc, char *argv[]) {
             block_run();
         } else if (strcmp(arg1, "status") == 0) {
             block_status();
-        } else if (strcmp(arg1, "predict") == 0 && args_count >= 3) {
+        } else if (strcmp(arg1, "predict") == 0 && args_count >= 4) {
             int core_id = atoi(arg2);
             float x = atof(arg3);
+            float y = atof(arg4);
             AICore *core = core_get(core_id);
             if (core) {
                 float pred = ai_block_predict(core, x);
@@ -496,13 +530,21 @@ int main(int argc, char *argv[]) {
             } else {
                 printf("Invalid core ID: %d\n", core_id);
             }
-        } else if (strcmp(arg1, "learn") == 0 && args_count >= 3) {
-            float x = atof(arg2);
-            float y = atof(arg3);
-            learn(x, y);
-            printf("Trained on sample (%.2f, %.2f)\n", x, y);
-        } else if (strcmp(arg1, "fetch") == 0) {
-            fetch_data();
+        } else if (strcmp(arg1, "train") == 0 && args_count >= 2) {
+            int core_ids[30];
+            int count = 0;
+            if (args_count >= 2) core_ids[count++] = atoi(arg2);
+            if (args_count >= 3) core_ids[count++] = atoi(arg3);
+            if (args_count >= 4) core_ids[count++] = atoi(arg4);
+            train_cores(count, core_ids);
+        
+        } else if (strcmp(arg1, "learn") == 0 && args_count >= 4) {
+            int core_id = atoi(arg2);
+            float x = atof(arg3);
+            float y = atof(arg4);
+            learn(core_id, x, y);
+        } else if (strcmp(arg1, "fetch") == 0 && args_count >= 2) {
+            fetch_data(atoi(arg2));
         } else if (strcmp(arg1, "info") == 0) {
             info();
         } else if (strlen(arg1) > 0) {

@@ -27,10 +27,10 @@ typedef struct {
 int learn_logic();
 
 // User interface functions
-void learn(float x, float y);
+void learn(int core_id, float x, float y);
 void status();
 void info();
-void fetch_data();
+void fetch_data(int core_id);
 
 // Block management functions
 void block_clear();
