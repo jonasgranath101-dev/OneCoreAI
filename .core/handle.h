@@ -19,7 +19,6 @@ typedef struct {
     int trained;         // Flag indicating if core has been trained
     float loss_history[100]; // Store loss over time
     int loss_count;
-    unsigned char data_sheet; // Hexadecimal data sheet for logic control
 } AICore;
 
 // Function prototypes

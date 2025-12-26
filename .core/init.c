@@ -36,6 +36,11 @@ typedef struct {
 AICore cores[MAX_CORES];
 int active_cores = 0;
 
+// Global hex data storage for recent training
+#define MAX_HEX_DATA 1000
+unsigned char recent_hex_data[MAX_HEX_DATA];
+int recent_hex_count = 0;
+
 // AI Block Functions - Core Logic Components
 
 // Forward pass block: prediction = w * x + b
@@ -142,7 +147,7 @@ int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
             ai_block_gradients(pred, data[i].y, data[i].x, &dw, &db);
 
             // Apply hexadecimal data sheet logic to gradients
-            unsigned char hex = core->data_sheet;
+            unsigned char hex = data[i].data_sheet;
             if (hex & 0x01) dw *= 2.0f;  // Bit 0: Amplify weight gradient
             if (hex & 0x02) db *= 2.0f;  // Bit 1: Amplify bias gradient
             if (hex & 0x04) dw = -dw;    // Bit 2: Invert weight gradient
@@ -244,7 +249,6 @@ int core_create(const char *name, float learning_rate, int epochs) {
     core->epochs = epochs;
     core->trained = 0;
     core->loss_count = 0;
-    core->data_sheet = 0x00;  // Default hexadecimal data sheet
 
     printf("Created Core %d: %s\n", core->id, core->name);
     return active_cores++;
@@ -322,10 +326,18 @@ void block_run() {
     TrainingData *data = malloc(DATA_SIZE * sizeof(TrainingData));
     srand(time(NULL));
 
+    // Reset hex data storage
+    recent_hex_count = 0;
+
     for (size_t i = 0; i < DATA_SIZE; i++) {
         data[i].x = (float)i / 100.0f;  // Scale to 0-10 range
         data[i].y = 2.0f * data[i].x + 1.0f + ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
         data[i].data_sheet = (unsigned char)(rand() % 256);  // Generate hexadecimal data sheet
+
+        // Store hex data for listing
+        if (recent_hex_count < MAX_HEX_DATA) {
+            recent_hex_data[recent_hex_count++] = data[i].data_sheet;
+        }
     }
 
     // Train all cores
@@ -347,10 +359,18 @@ void train_cores(int num_cores, int *core_ids) {
     TrainingData *data = malloc(DATA_SIZE * sizeof(TrainingData));
     srand(time(NULL));
 
+    // Reset hex data storage
+    recent_hex_count = 0;
+
     for (size_t i = 0; i < DATA_SIZE; i++) {
         data[i].x = (float)i / 100.0f;  // Scale to 0-10 range
         data[i].y = 2.0f * data[i].x + 1.0f + ((float)rand() / RAND_MAX - 0.5f) * 2.0f;
         data[i].data_sheet = (unsigned char)(rand() % 256);  // Generate hexadecimal data sheet
+
+        // Store hex data for listing
+        if (recent_hex_count < MAX_HEX_DATA) {
+            recent_hex_data[recent_hex_count++] = data[i].data_sheet;
+        }
     }
 
     // Train specified cores
@@ -451,6 +471,42 @@ void info() {
     printf("Maximum cores: %d\n", MAX_CORES);
 }
 
+// Display hexadecimal data list from recent training
+void hex_list() {
+    printf("\n=== Recent Training Hex Data ===\n");
+    printf("Hex values used in the last training session:\n\n");
+
+    if (recent_hex_count == 0) {
+        printf("No recent training data available.\n");
+        printf("Run 'run' or 'train <core_id>' to generate hex data.\n");
+        return;
+    }
+
+    printf("Total hex values: %d\n\n", recent_hex_count);
+
+    // Display in rows of 16 for readability
+    int items_per_row = 16;
+    for (int i = 0; i < recent_hex_count; i++) {
+        printf("%02X ", recent_hex_data[i]);
+        if ((i + 1) % items_per_row == 0) {
+            printf("\n");
+        }
+    }
+    if (recent_hex_count % items_per_row != 0) {
+        printf("\n");
+    }
+
+    printf("\nHex data affects gradient computation during training:\n");
+    printf("Bit 0: Amplify weight gradient\n");
+    printf("Bit 1: Amplify bias gradient\n");
+    printf("Bit 2: Invert weight gradient\n");
+    printf("Bit 3: Invert bias gradient\n");
+    printf("Bit 4: Scale gradients up\n");
+    printf("Bit 5: Scale gradients down\n");
+    printf("Bit 6: Swap weight and bias gradients\n");
+    printf("Bit 7: Zero gradients\n");
+}
+
 int main(int argc, char *argv[]) {
     printf("Welcome to OneCoreAI - Multiple AI Core Blocks System\n");
     printf("Type 'help' for available commands.\n\n");
@@ -488,8 +544,7 @@ int main(int argc, char *argv[]) {
             printf("  train <core_id> [core_id2] ... - Train specific cores\n");
             printf("  learn <core_id> <x> <y>      - Train specific core on single sample\n");
             printf("  fetch <core_id>              - Extract variables from specific core\n");
-            printf("  hex <core_id>                - Output hexadecimal data sheet for core\n");
-            printf("  config_data <core_id> <hex>  - Configure data sheet for core\n");
+            printf("  hexlist                      - Display hex data from recent training\n");
             printf("  info                         - Show system information\n");
             printf("  help                         - Show this help message\n");
             printf("  exit                         - Exit the program\n\n");
@@ -548,28 +603,8 @@ int main(int argc, char *argv[]) {
             learn(core_id, x, y);
         } else if (strcmp(arg1, "fetch") == 0 && args_count >= 2) {
             fetch_data(atoi(arg2));
-        } else if (strcmp(arg1, "hex") == 0 && args_count >= 2) {
-            int core_id = atoi(arg2);
-            AICore *core = core_get(core_id);
-            if (core) {
-                printf("Core %d Data Sheet: 0x%02X\n", core_id, core->data_sheet);
-            } else {
-                printf("Invalid core ID: %d\n", core_id);
-            }
-        } else if (strcmp(arg1, "config_data") == 0 && args_count >= 3) {
-            int core_id = atoi(arg2);
-            unsigned char hex_value;
-            if (sscanf(arg3, "%hhx", &hex_value) == 1 || sscanf(arg3, "0x%hhx", &hex_value) == 1) {
-                AICore *core = core_get(core_id);
-                if (core) {
-                    core->data_sheet = hex_value;
-                    printf("Configured Core %d Data Sheet: 0x%02X\n", core_id, core->data_sheet);
-                } else {
-                    printf("Invalid core ID: %d\n", core_id);
-                }
-            } else {
-                printf("Invalid hex value: %s\n", arg3);
-            }
+        } else if (strcmp(arg1, "hexlist") == 0) {
+            hex_list();
         } else if (strcmp(arg1, "info") == 0) {
             info();
         } else if (strlen(arg1) > 0) {
