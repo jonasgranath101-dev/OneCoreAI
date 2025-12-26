@@ -13,4 +13,4 @@ currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-Send message to me at jonasgranath101-dev through github.
+Email me the problem at jonasgranath101@gmail.com.
