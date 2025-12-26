@@ -142,7 +142,7 @@ int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
             ai_block_gradients(pred, data[i].y, data[i].x, &dw, &db);
 
             // Apply hexadecimal data sheet logic to gradients
-            unsigned char hex = data[i].data_sheet;
+            unsigned char hex = core->data_sheet;
             if (hex & 0x01) dw *= 2.0f;  // Bit 0: Amplify weight gradient
             if (hex & 0x02) db *= 2.0f;  // Bit 1: Amplify bias gradient
             if (hex & 0x04) dw = -dw;    // Bit 2: Invert weight gradient
@@ -244,6 +244,7 @@ int core_create(const char *name, float learning_rate, int epochs) {
     core->epochs = epochs;
     core->trained = 0;
     core->loss_count = 0;
+    core->data_sheet = 0x00;  // Default hexadecimal data sheet
 
     printf("Created Core %d: %s\n", core->id, core->name);
     return active_cores++;
@@ -487,6 +488,8 @@ int main(int argc, char *argv[]) {
             printf("  train <core_id> [core_id2] ... - Train specific cores\n");
             printf("  learn <core_id> <x> <y>      - Train specific core on single sample\n");
             printf("  fetch <core_id>              - Extract variables from specific core\n");
+            printf("  hex <core_id>                - Output hexadecimal data sheet for core\n");
+            printf("  config_data <core_id> <hex>  - Configure data sheet for core\n");
             printf("  info                         - Show system information\n");
             printf("  help                         - Show this help message\n");
             printf("  exit                         - Exit the program\n\n");
@@ -545,6 +548,28 @@ int main(int argc, char *argv[]) {
             learn(core_id, x, y);
         } else if (strcmp(arg1, "fetch") == 0 && args_count >= 2) {
             fetch_data(atoi(arg2));
+        } else if (strcmp(arg1, "hex") == 0 && args_count >= 2) {
+            int core_id = atoi(arg2);
+            AICore *core = core_get(core_id);
+            if (core) {
+                printf("Core %d Data Sheet: 0x%02X\n", core_id, core->data_sheet);
+            } else {
+                printf("Invalid core ID: %d\n", core_id);
+            }
+        } else if (strcmp(arg1, "config_data") == 0 && args_count >= 3) {
+            int core_id = atoi(arg2);
+            unsigned char hex_value;
+            if (sscanf(arg3, "%hhx", &hex_value) == 1 || sscanf(arg3, "0x%hhx", &hex_value) == 1) {
+                AICore *core = core_get(core_id);
+                if (core) {
+                    core->data_sheet = hex_value;
+                    printf("Configured Core %d Data Sheet: 0x%02X\n", core_id, core->data_sheet);
+                } else {
+                    printf("Invalid core ID: %d\n", core_id);
+                }
+            } else {
+                printf("Invalid hex value: %s\n", arg3);
+            }
         } else if (strcmp(arg1, "info") == 0) {
             info();
         } else if (strlen(arg1) > 0) {
