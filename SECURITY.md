@@ -17,7 +17,7 @@ currently being supported with security updates.
 
 
 
-## Be ware the latest version might not be balanced.
+## Beware the latest version might not be balanced.
 
 
 
