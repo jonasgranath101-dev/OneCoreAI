@@ -17,7 +17,7 @@
 */
 
 // Configuration variables
-#define MAX_CORES 10
+#define MAX_CORES 30
 #define MAX_ITERATIONS 100
 #define DATA_SIZE 1000
 #define DISK_SIZE 100
