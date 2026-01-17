@@ -152,6 +152,76 @@ float ai_block_ensemble_predict(float x, int *core_ids, int num_cores) {
     return valid_cores > 0 ? total_pred / valid_cores : 0.0f;
 }
 
+// Calculate loss statistics across training history
+void ai_block_loss_statistics(int core_id, float *min_loss, float *max_loss, float *avg_loss) {
+    if (core_id < 1 || core_id > active_cores) {
+        *min_loss = *max_loss = *avg_loss = 0.0f;
+        return;
+    }
+
+    AICore *core = &cores[core_id - 1];
+    if (core->loss_count == 0) {
+        *min_loss = *max_loss = *avg_loss = 0.0f;
+        return;
+    }
+
+    *min_loss = core->loss_history[0];
+    *max_loss = core->loss_history[0];
+    *avg_loss = 0.0f;
+
+    for (int i = 0; i < core->loss_count; i++) {
+        float loss = core->loss_history[i];
+        if (loss < *min_loss) *min_loss = loss;
+        if (loss > *max_loss) *max_loss = loss;
+        *avg_loss += loss;
+    }
+
+    *avg_loss /= core->loss_count;
+}
+
+// Detect loss convergence
+int ai_block_loss_converged(int core_id, float tolerance) {
+    if (core_id < 1 || core_id > active_cores) {
+        return 0;
+    }
+
+    AICore *core = &cores[core_id - 1];
+    if (core->loss_count < 10) {  // Need minimum history
+        return 0;
+    }
+
+    // Check if loss change is below tolerance for recent epochs
+    float recent_change = 0.0f;
+    int check_epochs = 5;
+    if (check_epochs > core->loss_count) check_epochs = core->loss_count;
+
+    for (int i = 1; i < check_epochs; i++) {
+        int curr_idx = core->loss_count - i;
+        int prev_idx = core->loss_count - i - 1;
+        if (curr_idx >= 0 && prev_idx >= 0) {
+            float change = (core->loss_history[prev_idx] - core->loss_history[curr_idx]) 
+                          / (core->loss_history[prev_idx] + 1e-8f);
+            if (change > recent_change) recent_change = change;
+        }
+    }
+
+    return recent_change < tolerance;
+}
+
+// Compute loss gradient norm for stability analysis
+float ai_block_loss_gradient_norm(float prediction, float target, float x, 
+                                  LossType loss_type, float delta) {
+    float dw, db;
+    float w_dummy = 0.0f, b_dummy = 0.0f;
+    
+    // Get gradients
+    ai_block_gradients_advanced(prediction, target, x, w_dummy, b_dummy, 
+                               &dw, &db, loss_type, delta, 0.0f);
+    
+    // Return L2 norm of gradient
+    return sqrtf(dw * dw + db * db);
+}
+
 // Legacy learn_logic function (for compatibility)
 int learn_logic() {
     const size_t N = 1000;

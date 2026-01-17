@@ -48,17 +48,103 @@ float ai_block_forward(float w, float b, float x) {
     return w * x + b;
 }
 
-// Loss calculation block: Mean Squared Error
+// Loss calculation block: Mean Squared Error (default)
 float ai_block_loss(float prediction, float target) {
     float error = prediction - target;
     return error * error;
 }
 
-// Gradient calculation block
+// Loss function: Mean Absolute Error (L1 loss)
+float ai_block_loss_mae(float prediction, float target) {
+    float error = prediction - target;
+    return error < 0 ? -error : error;  // Absolute value
+}
+
+// Loss function: Huber Loss (combination of MSE and MAE, robust to outliers)
+float ai_block_loss_huber(float prediction, float target, float delta) {
+    float error = prediction - target;
+    float abs_error = error < 0 ? -error : error;
+    
+    if (abs_error <= delta) {
+        return 0.5f * error * error;  // MSE for small errors
+    } else {
+        return delta * (abs_error - 0.5f * delta);  // Linear for large errors
+    }
+}
+
+// Unified loss calculation with loss type selection and regularization
+float ai_block_loss_with_regularization(float prediction, float target, float weight, 
+                                       float bias, LossType loss_type, float delta, 
+                                       float lambda) {
+    float base_loss = 0.0f;
+    
+    // Calculate base loss based on type
+    switch (loss_type) {
+        case LOSS_MSE:
+            base_loss = ai_block_loss(prediction, target);
+            break;
+        case LOSS_MAE:
+            base_loss = ai_block_loss_mae(prediction, target);
+            break;
+        case LOSS_HUBER:
+            base_loss = ai_block_loss_huber(prediction, target, delta);
+            break;
+        default:
+            base_loss = ai_block_loss(prediction, target);
+    }
+    
+    // Add L2 regularization if lambda > 0
+    if (lambda > 0.0f) {
+        float l2_reg = lambda * (weight * weight + bias * bias) / 2.0f;
+        base_loss += l2_reg;
+    }
+    
+    return base_loss;
+}
+
+// Gradient calculation block with support for different loss functions
 void ai_block_gradients(float prediction, float target, float x, float *dw, float *db) {
     float error = prediction - target;
     *dw = 2.0f * error * x;
     *db = 2.0f * error;
+}
+
+// Gradient calculation with loss type support and regularization
+void ai_block_gradients_advanced(float prediction, float target, float x, 
+                                float weight, float bias, float *dw, float *db,
+                                LossType loss_type, float delta, float lambda) {
+    float error = prediction - target;
+    float abs_error = error < 0 ? -error : error;
+    float grad_factor = 0.0f;
+    
+    // Calculate gradient factor based on loss type
+    switch (loss_type) {
+        case LOSS_MSE:
+            grad_factor = 2.0f * error;
+            break;
+        case LOSS_MAE:
+            grad_factor = error < 0 ? -1.0f : 1.0f;  // Sign of error
+            break;
+        case LOSS_HUBER:
+            if (abs_error <= delta) {
+                grad_factor = error;  // Gradient for MSE region
+            } else {
+                grad_factor = delta * (error < 0 ? -1.0f : 1.0f);  // Gradient for linear region
+            }
+            break;
+        default:
+            grad_factor = 2.0f * error;
+    }
+    
+    // Calculate gradients for parameters
+    *dw = grad_factor * x;
+    *db = grad_factor;
+    
+    // Add L2 regularization gradient if lambda > 0
+    if (lambda > 0.0f) {
+        *dw += lambda * weight;
+        *db += lambda * bias;
+    }
 }
 
 // Parameter update block
@@ -129,6 +215,11 @@ void visualize_core(AICore *core, float current_loss) {
 // Training block - combines all AI blocks for one core
 int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
     printf("Training Core %d (%s)...\n", core->id, core->name);
+    printf("Loss Function: %s | Regularization: %s (lambda=%.6f)\n", 
+           core->loss_type == LOSS_MSE ? "MSE" : 
+           core->loss_type == LOSS_MAE ? "MAE" : "Huber",
+           core->regularization_lambda > 0 ? "Enabled" : "Disabled",
+           core->regularization_lambda);
 
     // Reset loss history
     core->loss_count = 0;
@@ -141,10 +232,19 @@ int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
         // Forward pass and gradient accumulation
         for (size_t i = 0; i < data_size; i++) {
             float pred = ai_block_forward(core->weight, core->bias, data[i].x);
-            total_loss += ai_block_loss(pred, data[i].y);
+            
+            // Use new loss calculation with regularization
+            float loss = ai_block_loss_with_regularization(pred, data[i].y, core->weight, 
+                                                          core->bias, core->loss_type, 
+                                                          core->huber_delta, 
+                                                          core->regularization_lambda);
+            total_loss += loss;
 
             float dw, db;
-            ai_block_gradients(pred, data[i].y, data[i].x, &dw, &db);
+            // Use advanced gradient calculation
+            ai_block_gradients_advanced(pred, data[i].y, data[i].x, core->weight, core->bias,
+                                       &dw, &db, core->loss_type, core->huber_delta, 
+                                       core->regularization_lambda);
 
             // Apply hexadecimal data sheet logic to gradients
             unsigned char hex = data[i].data_sheet;
@@ -179,11 +279,23 @@ int ai_block_train(AICore *core, TrainingData *data, size_t data_size) {
         avg_db /= data_size;
         total_loss /= data_size;
 
+        // Clip gradients to prevent explosion (gradient clipping for stability)
+        float max_grad = 5.0f;
+        if (avg_dw > max_grad) avg_dw = max_grad;
+        if (avg_dw < -max_grad) avg_dw = -max_grad;
+        if (avg_db > max_grad) avg_db = max_grad;
+        if (avg_db < -max_grad) avg_db = -max_grad;
+
         // Update parameters
         ai_block_update(&core->weight, &core->bias, avg_dw, avg_db, core->learning_rate);
 
-        // Store loss history
+        // Store loss history (with safety checks)
         if (epoch < 100) {
+            // Check for NaN or infinite loss values
+            if (total_loss != total_loss || total_loss > 1e10f || total_loss < -1e10f) {
+                printf("Warning: Invalid loss value detected (NaN or Inf). Clamping to safe value.\n");
+                total_loss = 1e10f;
+            }
             core->loss_history[epoch] = total_loss;
             core->loss_count++;
         }
@@ -249,6 +361,9 @@ int core_create(const char *name, float learning_rate, int epochs) {
     core->epochs = epochs;
     core->trained = 0;
     core->loss_count = 0;
+    core->loss_type = LOSS_MSE;  // Default loss function
+    core->regularization_lambda = 0.0f;  // No regularization by default
+    core->huber_delta = 1.0f;  // Default Huber delta
 
     printf("Created Core %d: %s\n", core->id, core->name);
     return active_cores++;
@@ -402,13 +517,25 @@ void block_status() {
 
     for (int i = 0; i < active_cores; i++) {
         AICore *core = &cores[i];
+        const char *loss_type_str = core->loss_type == LOSS_MSE ? "MSE" : 
+                                   core->loss_type == LOSS_MAE ? "MAE" : "Huber";
+        
         printf("Core %d (%s):\n", core->id, core->name);
         printf("  Trained: %s\n", core->trained ? "Yes" : "No");
+        printf("  Loss Function: %s\n", loss_type_str);
+        printf("  L2 Regularization: %.6f %s\n", core->regularization_lambda, 
+               core->regularization_lambda > 0 ? "(enabled)" : "(disabled)");
+        
         if (core->trained) {
             printf("  Weight: %.4f, Bias: %.4f\n", core->weight, core->bias);
             printf("  Learning Rate: %.4f, Epochs: %d\n", core->learning_rate, core->epochs);
             if (core->loss_count > 0) {
                 printf("  Final Loss: %.4f\n", core->loss_history[core->loss_count - 1]);
+                if (core->loss_count > 1) {
+                    float loss_reduction = ((core->loss_history[0] - core->loss_history[core->loss_count - 1]) 
+                                           / core->loss_history[0]) * 100.0f;
+                    printf("  Loss Reduction: %.2f%%\n", loss_reduction);
+                }
             }
         }
         printf("\n");
@@ -468,7 +595,19 @@ void info() {
     printf("Block-based AI system with multiple cores.\n");
     printf("Each core contains AI logic blocks with extractable variables.\n");
     printf("Commands: create cores, train, predict, extract variables.\n");
-    printf("Maximum cores: %d\n", MAX_CORES);
+    printf("Maximum cores: %d\n\n", MAX_CORES);
+    printf("=== Loss System Features ===\n");
+    printf("Multiple Loss Functions:\n");
+    printf("  0 - MSE (Mean Squared Error): Default, sensitive to outliers\n");
+    printf("  1 - MAE (Mean Absolute Error): More robust to outliers\n");
+    printf("  2 - Huber Loss: Hybrid approach, robust and stable\n\n");
+    printf("Regularization:\n");
+    printf("  L2 Regularization: Prevents overfitting\n");
+    printf("  Can be configured per core using 'setreg' command\n\n");
+    printf("Advanced Features:\n");
+    printf("  - Gradient Clipping: Prevents gradient explosion\n");
+    printf("  - NaN/Inf Detection: Automatic loss value clamping\n");
+    printf("  - Loss History Tracking: Monitors training progress\n");
 }
 
 // Display hexadecimal data list from recent training
@@ -544,6 +683,8 @@ int main(int argc, char *argv[]) {
             printf("  train <core_id> [core_id2] ... - Train specific cores\n");
             printf("  learn <core_id> <x> <y>      - Train specific core on single sample\n");
             printf("  fetch <core_id>              - Extract variables from specific core\n");
+            printf("  setloss <core_id> <type>     - Set loss function (0=MSE, 1=MAE, 2=Huber)\n");
+            printf("  setreg <core_id> <lambda>    - Set L2 regularization coefficient\n");
             printf("  hexlist                      - Display hex data from recent training\n");
             printf("  info                         - Show system information\n");
             printf("  help                         - Show this help message\n");
@@ -603,6 +744,35 @@ int main(int argc, char *argv[]) {
             learn(core_id, x, y);
         } else if (strcmp(arg1, "fetch") == 0 && args_count >= 2) {
             fetch_data(atoi(arg2));
+        } else if (strcmp(arg1, "setloss") == 0 && args_count >= 3) {
+            int core_id = atoi(arg2);
+            int loss_type = atoi(arg3);
+            AICore *core = core_get(core_id);
+            if (core) {
+                if (loss_type >= 0 && loss_type <= 2) {
+                    core->loss_type = (LossType)loss_type;
+                    const char *loss_names[] = {"MSE", "MAE", "Huber"};
+                    printf("Core %d loss function set to: %s\n", core_id, loss_names[loss_type]);
+                } else {
+                    printf("Invalid loss type! Valid options: 0=MSE, 1=MAE, 2=Huber\n");
+                }
+            } else {
+                printf("Invalid core ID: %d\n", core_id);
+            }
+        } else if (strcmp(arg1, "setreg") == 0 && args_count >= 3) {
+            int core_id = atoi(arg2);
+            float lambda = atof(arg3);
+            AICore *core = core_get(core_id);
+            if (core) {
+                if (lambda >= 0) {
+                    core->regularization_lambda = lambda;
+                    printf("Core %d L2 regularization set to: %.6f\n", core_id, lambda);
+                } else {
+                    printf("Regularization coefficient must be non-negative!\n");
+                }
+            } else {
+                printf("Invalid core ID: %d\n", core_id);
+            }
         } else if (strcmp(arg1, "hexlist") == 0) {
             hex_list();
         } else if (strcmp(arg1, "info") == 0) {
