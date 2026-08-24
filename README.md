@@ -1,6 +1,8 @@
-# OneCoreAI
+
 
 ![Logo Description](/logo.png)
+
+# OneCoreAI
 
 OneCoreAI is a block-based AI system written in C that allows creating multiple AI "cores" (blocks), each containing modular AI logic with extractable variables.
 
